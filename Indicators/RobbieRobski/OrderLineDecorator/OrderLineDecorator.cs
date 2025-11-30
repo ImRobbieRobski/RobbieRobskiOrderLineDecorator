@@ -85,7 +85,7 @@ namespace NinjaTrader.NinjaScript.Indicators.RobbieRobski
 
             if (State == State.SetDefaults)
             {
-                Description = @"Order Line Decorator";
+                Description = @"Order Line Decorator. Updates at https://github.com/ImRobbieRobski/RobbieRobskiOrderLineDecorator";
                 Name = "\"OrderLineDecorator\"";
                 Calculate = Calculate.OnPriceChange;
                 IsOverlay = true;
@@ -635,3 +635,4 @@ namespace NinjaTrader.NinjaScript.Strategies
 }
 
 #endregion
+
