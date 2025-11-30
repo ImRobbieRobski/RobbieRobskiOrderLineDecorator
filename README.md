@@ -4,9 +4,14 @@
 The **OrderLineDecorator** is a custom indicator designed for NinjaTrader 8 that enhances the visual display of active stop and target orders in the Chart Trader panel. By overlaying informative labels directly next to your order lines on the chart, it provides at-a-glance insights into the potential risk and reward of your trades. This forked and updated version (originally based on Gemify's OrderLineDecorator) introduces normalization features, making it particularly useful for traders managing multi-contract positions. It helps streamline decision-making by automating calculations that would otherwise require manual effort, reducing cognitive load during live trading.
 
 **Especially useful and convenient for prop traders migrating off of ProjectX to Tradovate which does not have this feature natively**
+This was forked from Gemify. This used to be on the ninja trader ecosystem but it was pulled. I treid reaching out to this Gemify but he's unreachable. My specific contribution is the normalization features.
 
 <img width="760" height="540" alt="image" src="https://github.com/user-attachments/assets/0c4aa783-dc8d-4e86-b67e-d585c3cf3de8" />
 
+Follow me on these
+- https://x.com/imRobbieRobski
+- https://www.youtube.com/@CoastToCoastTradersPodcast
+- https://www.youtube.com/@RobbieRobski
 ---
 ## How It Works
 
@@ -49,9 +54,7 @@ Key Features and Benefits
     - Percent of Account (%): Expresses the currency value as a percentage of your account's cash value (e.g., 1.25%). Benefit: Encourages risk-aware trading by highlighting how much of your capital is at stake, aligning with rules like the 1-2% risk per trade guideline.
     
 **No more mental math**
+
 ![RobbieRobskiOrderLineDecorator-Settings](https://github.com/user-attachments/assets/d92d9c59-ad28-4fab-945e-74c11e265e6a)
 
-Follow me on these
-- https://x.com/imRobbieRobski
-- https://www.youtube.com/@CoastToCoastTradersPodcast
-- https://www.youtube.com/@RobbieRobski
+
