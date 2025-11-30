@@ -18,11 +18,16 @@ using Account = NinjaTrader.Cbi.Account;
 using Order = NinjaTrader.Cbi.Order;
 #endregion
 
+//Forked from Gemify OrderLineDecorator. The original creator pulled this from the ninja trader ecosystem and appears to have abandoned the project, and not answering direct messages. 
+//I updated this to add normalizing features which are designed to show various values for the individual contract rather than only the whole group (assuming you are trading size)
+//https://x.com/imRobbieRobski
+
 //This namespace holds Indicators in this folder and is required. Do not change it. 
-namespace NinjaTrader.NinjaScript.Indicators.Gemify
+namespace NinjaTrader.NinjaScript.Indicators.RobbieRobski
 {
     public class OrderLineDecorator : Indicator
     {
+    
         // ---------------------------------------
         // Update this list as you see fit
         // to support additional order types
@@ -98,9 +103,13 @@ namespace NinjaTrader.NinjaScript.Indicators.Gemify
                 IsDebug = false;
                 isSubscribed = false;
                 DisplayTicks = true;
-                DisplayCurrency = true;
+                NormalizeTicksToSingleContract = false;
                 DisplayPoints = false;
+                NormalizePointsToSingleContract = false;
+                DisplayCurrency = true;
+                NormalizeCurrencyToSingleContract = false;
                 DisplayPercentOfAccount = true;
+                NormalizePercentToSingleContract = false;
 
                 chartFont = null;
 
@@ -117,7 +126,6 @@ namespace NinjaTrader.NinjaScript.Indicators.Gemify
                 TextBrush = Brushes.White;
 
                 chartTraderVisibilitySubscribed = false;
-
             }
             else if (State == State.Configure)
             {
@@ -137,7 +145,6 @@ namespace NinjaTrader.NinjaScript.Indicators.Gemify
                 }
 
                 gIsChartTraderOn = IsChartTraderOn();
-
             }
             else if (State == State.Realtime)
             {
@@ -187,7 +194,6 @@ namespace NinjaTrader.NinjaScript.Indicators.Gemify
                     
                     chartTraderOn = chartWindow.ChartTrader.IsVisible;
                 }
-
             }));
 
             return chartTraderOn;
@@ -322,27 +328,30 @@ namespace NinjaTrader.NinjaScript.Indicators.Gemify
                                     Debug("Key wasn't found in tracker. Adding new entry with {0} orders.", orderQty);
                                 }
 
-                                // Calculate ticks and currency value from entry
+                                // Calculate values, using orderQty=1 for normalized metrics
                                 double priceDiff = (p.MarketPosition == MarketPosition.Long ? orderPrice - entryPrice : entryPrice - orderPrice);
                                 int ticks = (int)Instrument.MasterInstrument.RoundToTickSize(priceDiff / TickSize);
-                                double points = Instrument.MasterInstrument.RoundToTickSize(priceDiff * orderQty);
-                                double currencyValue = priceDiff * Instrument.MasterInstrument.PointValue * orderQty;
-
+                                double points = Instrument.MasterInstrument.RoundToTickSize(priceDiff);
+                                double currencyValue = priceDiff * Instrument.MasterInstrument.PointValue;
                                 double accCashValue = gAccount.GetAccountItem(AccountItem.CashValue, Currency.UsDollar).Value;
 
-                                DisplayTicks = DisplayTicks && (DisplayTicks || DisplayPoints || DisplayCurrency);
+                                // Apply normalization based on user settings
+                                int displayQtyForTicks = NormalizeTicksToSingleContract ? 1 : orderQty;
+                                int displayQtyForPoints = NormalizePointsToSingleContract ? 1 : orderQty;
+                                int displayQtyForCurrency = NormalizeCurrencyToSingleContract ? 1 : orderQty;
+                                int displayQtyForPercent = NormalizePercentToSingleContract ? 1 : orderQty;
 
                                 // Generate text for decoration
                                 string orderType = IsStopOrder(order) ? "STOP" : "TARGET";
                                 string text = orderType + " (" + orderQty + ")" +
                                     (DisplayTicks ? "  :  " : "") +
-                                    (DisplayTicks ? (IsStopOrder(order) && ticks > 0 ? "+" : "") + ticks + " T" : "") +
+                                    (DisplayTicks ? (IsStopOrder(order) && ticks > 0 ? "+" : "") + (ticks * displayQtyForTicks) + " T" : "") +
                                     (DisplayPoints ? "  :  " : "") +
-                                    (DisplayPoints ? (IsStopOrder(order) && points > 0 ? "+" : "") + points + " P" : "") +
+                                    (DisplayPoints ? (IsStopOrder(order) && points > 0 ? "+" : "") + (points * displayQtyForPoints) + " P" : "") +
                                     (DisplayCurrency ? "  :  " : "") +
-                                    (DisplayCurrency ? currencyValue.ToString("C2") : "") +
+                                    (DisplayCurrency ? (currencyValue * displayQtyForCurrency).ToString("C2") : "") +
                                     (DisplayPercentOfAccount ? "  :  " : "") +
-                                    (DisplayPercentOfAccount ? (currencyValue / accCashValue).ToString("P2") : "");
+                                    (DisplayPercentOfAccount ? ((currencyValue * displayQtyForPercent) / accCashValue).ToString("P2") : "");
 
                                 Debug("Text in toRender should be: {0}", text);
 
@@ -357,7 +366,6 @@ namespace NinjaTrader.NinjaScript.Indicators.Gemify
 
             // Request a refresh
             ForceRefresh();
-
         }
 
         private bool IsStopOrder(Order order)
@@ -394,7 +402,6 @@ namespace NinjaTrader.NinjaScript.Indicators.Gemify
             else if (RecognizedTargetOrderTypes.Contains(order.OrderType)) orderPrice = order.LimitPrice;
 
             return orderPrice;
-
         }
 
         protected override void OnRender(ChartControl chartControl, ChartScale chartScale)
@@ -436,7 +443,6 @@ namespace NinjaTrader.NinjaScript.Indicators.Gemify
                     RenderTarget.DrawTextLayout(upperTextPoint, textLayout, textBrushDx, SharpDX.Direct2D1.DrawTextOptions.NoSnap);
                     textLayout.Dispose();
                 }
-
             }
         }
 
@@ -448,8 +454,18 @@ namespace NinjaTrader.NinjaScript.Indicators.Gemify
         { get; set; }
 
         [NinjaScriptProperty]
+        [Display(Name = "Normalize Ticks to Single Contract", GroupName = "Display", Order = 110)]
+        public bool NormalizeTicksToSingleContract
+        { get; set; }
+
+        [NinjaScriptProperty]
         [Display(Name = "Points", GroupName = "Display", Order = 200)]
         public bool DisplayPoints
+        { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Normalize Points to Single Contract", GroupName = "Display", Order = 210)]
+        public bool NormalizePointsToSingleContract
         { get; set; }
 
         [NinjaScriptProperty]
@@ -458,8 +474,18 @@ namespace NinjaTrader.NinjaScript.Indicators.Gemify
         { get; set; }
 
         [NinjaScriptProperty]
+        [Display(Name = "Normalize Currency to Single Contract", GroupName = "Display", Order = 310)]
+        public bool NormalizeCurrencyToSingleContract
+        { get; set; }
+
+        [NinjaScriptProperty]
         [Display(Name = "Percent (of Account Value)", GroupName = "Display", Order = 400)]
         public bool DisplayPercentOfAccount
+        { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Normalize Percent to Single Contract", GroupName = "Display", Order = 410)]
+        public bool NormalizePercentToSingleContract
         { get; set; }
 
         // Kludge-alert! Need a better (WPF) way to determine _where_ the order line ends.
@@ -468,8 +494,6 @@ namespace NinjaTrader.NinjaScript.Indicators.Gemify
         [Display(Name = "Decorator : Order Gap", Description = "Adjust the gap between the decorator and the order UI element.", GroupName = "UI Adjustments", Order = 100)]
         public int FlexGapWidth
         { get; set; }
-
-
 
         [NinjaScriptProperty]
         [XmlIgnore]
@@ -525,62 +549,89 @@ namespace NinjaTrader.NinjaScript.Indicators.Gemify
 
         #endregion
     }
-
 }
 
 #region NinjaScript generated code. Neither change nor remove.
 
 namespace NinjaTrader.NinjaScript.Indicators
 {
-	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
-	{
-		private Gemify.OrderLineDecorator[] cacheOrderLineDecorator;
-		public Gemify.OrderLineDecorator OrderLineDecorator(bool displayTicks, bool displayPoints, bool displayCurrency, bool displayPercentOfAccount, int flexGapWidth, Brush stopFillBrush, Brush targetFillBrush, Brush outlineBrush, Brush textBrush)
-		{
-			return OrderLineDecorator(Input, displayTicks, displayPoints, displayCurrency, displayPercentOfAccount, flexGapWidth, stopFillBrush, targetFillBrush, outlineBrush, textBrush);
-		}
+    public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
+    {
+        private RobbieRobski.OrderLineDecorator[] cacheOrderLineDecorator;
+        public RobbieRobski.OrderLineDecorator OrderLineDecorator(bool displayTicks, bool normalizeTicksToSingleContract, bool displayPoints, bool normalizePointsToSingleContract, bool displayCurrency, bool normalizeCurrencyToSingleContract, bool displayPercentOfAccount, bool normalizePercentToSingleContract, int flexGapWidth, Brush stopFillBrush, Brush targetFillBrush, Brush outlineBrush, Brush textBrush)
+        {
+            return OrderLineDecorator(Input, displayTicks, normalizeTicksToSingleContract, displayPoints, normalizePointsToSingleContract, displayCurrency, normalizeCurrencyToSingleContract, displayPercentOfAccount, normalizePercentToSingleContract, flexGapWidth, stopFillBrush, targetFillBrush, outlineBrush, textBrush);
+        }
 
-		public Gemify.OrderLineDecorator OrderLineDecorator(ISeries<double> input, bool displayTicks, bool displayPoints, bool displayCurrency, bool displayPercentOfAccount, int flexGapWidth, Brush stopFillBrush, Brush targetFillBrush, Brush outlineBrush, Brush textBrush)
-		{
-			if (cacheOrderLineDecorator != null)
-				for (int idx = 0; idx < cacheOrderLineDecorator.Length; idx++)
-					if (cacheOrderLineDecorator[idx] != null && cacheOrderLineDecorator[idx].DisplayTicks == displayTicks && cacheOrderLineDecorator[idx].DisplayPoints == displayPoints && cacheOrderLineDecorator[idx].DisplayCurrency == displayCurrency && cacheOrderLineDecorator[idx].DisplayPercentOfAccount == displayPercentOfAccount && cacheOrderLineDecorator[idx].FlexGapWidth == flexGapWidth && cacheOrderLineDecorator[idx].StopFillBrush == stopFillBrush && cacheOrderLineDecorator[idx].TargetFillBrush == targetFillBrush && cacheOrderLineDecorator[idx].OutlineBrush == outlineBrush && cacheOrderLineDecorator[idx].TextBrush == textBrush && cacheOrderLineDecorator[idx].EqualsInput(input))
-						return cacheOrderLineDecorator[idx];
-			return CacheIndicator<Gemify.OrderLineDecorator>(new Gemify.OrderLineDecorator(){ DisplayTicks = displayTicks, DisplayPoints = displayPoints, DisplayCurrency = displayCurrency, DisplayPercentOfAccount = displayPercentOfAccount, FlexGapWidth = flexGapWidth, StopFillBrush = stopFillBrush, TargetFillBrush = targetFillBrush, OutlineBrush = outlineBrush, TextBrush = textBrush }, input, ref cacheOrderLineDecorator);
-		}
-	}
+        public RobbieRobski.OrderLineDecorator OrderLineDecorator(ISeries<double> input, bool displayTicks, bool normalizeTicksToSingleContract, bool displayPoints, bool normalizePointsToSingleContract, bool displayCurrency, bool normalizeCurrencyToSingleContract, bool displayPercentOfAccount, bool normalizePercentToSingleContract, int flexGapWidth, Brush stopFillBrush, Brush targetFillBrush, Brush outlineBrush, Brush textBrush)
+        {
+            if (cacheOrderLineDecorator != null)
+                for (int idx = 0; idx < cacheOrderLineDecorator.Length; idx++)
+                    if (cacheOrderLineDecorator[idx] != null && 
+                        cacheOrderLineDecorator[idx].DisplayTicks == displayTicks && 
+                        cacheOrderLineDecorator[idx].NormalizeTicksToSingleContract == normalizeTicksToSingleContract &&
+                        cacheOrderLineDecorator[idx].DisplayPoints == displayPoints && 
+                        cacheOrderLineDecorator[idx].NormalizePointsToSingleContract == normalizePointsToSingleContract &&
+                        cacheOrderLineDecorator[idx].DisplayCurrency == displayCurrency && 
+                        cacheOrderLineDecorator[idx].NormalizeCurrencyToSingleContract == normalizeCurrencyToSingleContract &&
+                        cacheOrderLineDecorator[idx].DisplayPercentOfAccount == displayPercentOfAccount && 
+                        cacheOrderLineDecorator[idx].NormalizePercentToSingleContract == normalizePercentToSingleContract &&
+                        cacheOrderLineDecorator[idx].FlexGapWidth == flexGapWidth && 
+                        cacheOrderLineDecorator[idx].StopFillBrush == stopFillBrush && 
+                        cacheOrderLineDecorator[idx].TargetFillBrush == targetFillBrush && 
+                        cacheOrderLineDecorator[idx].OutlineBrush == outlineBrush && 
+                        cacheOrderLineDecorator[idx].TextBrush == textBrush && 
+                        cacheOrderLineDecorator[idx].EqualsInput(input))
+                        return cacheOrderLineDecorator[idx];
+            return CacheIndicator<RobbieRobski.OrderLineDecorator>(new RobbieRobski.OrderLineDecorator(){ 
+                DisplayTicks = displayTicks, 
+                NormalizeTicksToSingleContract = normalizeTicksToSingleContract,
+                DisplayPoints = displayPoints, 
+                NormalizePointsToSingleContract = normalizePointsToSingleContract,
+                DisplayCurrency = displayCurrency, 
+                NormalizeCurrencyToSingleContract = normalizeCurrencyToSingleContract,
+                DisplayPercentOfAccount = displayPercentOfAccount, 
+                NormalizePercentToSingleContract = normalizePercentToSingleContract,
+                FlexGapWidth = flexGapWidth, 
+                StopFillBrush = stopFillBrush, 
+                TargetFillBrush = targetFillBrush, 
+                OutlineBrush = outlineBrush, 
+                TextBrush = textBrush }, 
+                input, ref cacheOrderLineDecorator);
+        }
+    }
 }
 
 namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
-	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
-	{
-		public Indicators.Gemify.OrderLineDecorator OrderLineDecorator(bool displayTicks, bool displayPoints, bool displayCurrency, bool displayPercentOfAccount, int flexGapWidth, Brush stopFillBrush, Brush targetFillBrush, Brush outlineBrush, Brush textBrush)
-		{
-			return indicator.OrderLineDecorator(Input, displayTicks, displayPoints, displayCurrency, displayPercentOfAccount, flexGapWidth, stopFillBrush, targetFillBrush, outlineBrush, textBrush);
-		}
+    public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
+    {
+        public Indicators.RobbieRobski.OrderLineDecorator OrderLineDecorator(bool displayTicks, bool normalizeTicksToSingleContract, bool displayPoints, bool normalizePointsToSingleContract, bool displayCurrency, bool normalizeCurrencyToSingleContract, bool displayPercentOfAccount, bool normalizePercentToSingleContract, int flexGapWidth, Brush stopFillBrush, Brush targetFillBrush, Brush outlineBrush, Brush textBrush)
+        {
+            return indicator.OrderLineDecorator(Input, displayTicks, normalizeTicksToSingleContract, displayPoints, normalizePointsToSingleContract, displayCurrency, normalizeCurrencyToSingleContract, displayPercentOfAccount, normalizePercentToSingleContract, flexGapWidth, stopFillBrush, targetFillBrush, outlineBrush, textBrush);
+        }
 
-		public Indicators.Gemify.OrderLineDecorator OrderLineDecorator(ISeries<double> input , bool displayTicks, bool displayPoints, bool displayCurrency, bool displayPercentOfAccount, int flexGapWidth, Brush stopFillBrush, Brush targetFillBrush, Brush outlineBrush, Brush textBrush)
-		{
-			return indicator.OrderLineDecorator(input, displayTicks, displayPoints, displayCurrency, displayPercentOfAccount, flexGapWidth, stopFillBrush, targetFillBrush, outlineBrush, textBrush);
-		}
-	}
+        public Indicators.RobbieRobski.OrderLineDecorator OrderLineDecorator(ISeries<double> input, bool displayTicks, bool normalizeTicksToSingleContract, bool displayPoints, bool normalizePointsToSingleContract, bool displayCurrency, bool normalizeCurrencyToSingleContract, bool displayPercentOfAccount, bool normalizePercentToSingleContract, int flexGapWidth, Brush stopFillBrush, Brush targetFillBrush, Brush outlineBrush, Brush textBrush)
+        {
+            return indicator.OrderLineDecorator(input, displayTicks, normalizeTicksToSingleContract, displayPoints, normalizePointsToSingleContract, displayCurrency, normalizeCurrencyToSingleContract, displayPercentOfAccount, normalizePercentToSingleContract, flexGapWidth, stopFillBrush, targetFillBrush, outlineBrush, textBrush);
+        }
+    }
 }
 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
-	{
-		public Indicators.Gemify.OrderLineDecorator OrderLineDecorator(bool displayTicks, bool displayPoints, bool displayCurrency, bool displayPercentOfAccount, int flexGapWidth, Brush stopFillBrush, Brush targetFillBrush, Brush outlineBrush, Brush textBrush)
-		{
-			return indicator.OrderLineDecorator(Input, displayTicks, displayPoints, displayCurrency, displayPercentOfAccount, flexGapWidth, stopFillBrush, targetFillBrush, outlineBrush, textBrush);
-		}
+    public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
+    {
+        public Indicators.RobbieRobski.OrderLineDecorator OrderLineDecorator(bool displayTicks, bool normalizeTicksToSingleContract, bool displayPoints, bool normalizePointsToSingleContract, bool displayCurrency, bool normalizeCurrencyToSingleContract, bool displayPercentOfAccount, bool normalizePercentToSingleContract, int flexGapWidth, Brush stopFillBrush, Brush targetFillBrush, Brush outlineBrush, Brush textBrush)
+        {
+            return indicator.OrderLineDecorator(Input, displayTicks, normalizeTicksToSingleContract, displayPoints, normalizePointsToSingleContract, displayCurrency, normalizeCurrencyToSingleContract, displayPercentOfAccount, normalizePercentToSingleContract, flexGapWidth, stopFillBrush, targetFillBrush, outlineBrush, textBrush);
+        }
 
-		public Indicators.Gemify.OrderLineDecorator OrderLineDecorator(ISeries<double> input , bool displayTicks, bool displayPoints, bool displayCurrency, bool displayPercentOfAccount, int flexGapWidth, Brush stopFillBrush, Brush targetFillBrush, Brush outlineBrush, Brush textBrush)
-		{
-			return indicator.OrderLineDecorator(input, displayTicks, displayPoints, displayCurrency, displayPercentOfAccount, flexGapWidth, stopFillBrush, targetFillBrush, outlineBrush, textBrush);
-		}
-	}
+        public Indicators.RobbieRobski.OrderLineDecorator OrderLineDecorator(ISeries<double> input, bool displayTicks, bool normalizeTicksToSingleContract, bool displayPoints, bool normalizePointsToSingleContract, bool displayCurrency, bool normalizeCurrencyToSingleContract, bool displayPercentOfAccount, bool normalizePercentToSingleContract, int flexGapWidth, Brush stopFillBrush, Brush targetFillBrush, Brush outlineBrush, Brush textBrush)
+        {
+            return indicator.OrderLineDecorator(input, displayTicks, normalizeTicksToSingleContract, displayPoints, normalizePointsToSingleContract, displayCurrency, normalizeCurrencyToSingleContract, displayPercentOfAccount, normalizePercentToSingleContract, flexGapWidth, stopFillBrush, targetFillBrush, outlineBrush, textBrush);
+        }
+    }
 }
 
 #endregion
