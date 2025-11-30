@@ -1,1 +1,1 @@
-# GemifyOrderLineDecorator
+OrderLineDecorator
