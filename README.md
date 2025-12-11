@@ -1,11 +1,11 @@
 
 # OrderLineDecorator Indicator for NinjaTrader 8
 
-The **OrderLineDecorator** is a custom indicator designed for NinjaTrader 8 that enhances the visual display of active stop and target orders in the Chart Trader panel. By overlaying informative labels directly next to your order lines on the chart, it provides at-a-glance insights into the potential risk and reward of your trades. This forked and updated version (originally based on Gemify's OrderLineDecorator) introduces normalization features, making it particularly useful for traders managing multi-contract positions. It helps streamline decision-making by automating calculations that would otherwise require manual effort, reducing cognitive load during live trading.
+The **OrderLineDecorator** is a custom indicator designed for NinjaTrader 8 that enhances the visual display of active stop and target orders in the Chart Trader panel. By overlaying informative labels directly next to your order lines on the chart, it provides at-a-glance insights into the potential risk and reward of your trades. This fork of Gemify OrderLineDecorator introduces normalization features, making it particularly useful for traders managing multi-contract positions. It helps streamline decision-making by automating calculations that would otherwise require manual effort, reducing cognitive load during live trading.
 
-**Especially useful and convenient for prop traders migrating off of ProjectX to Tradovate which does not have this feature natively**
-This was forked from Gemify. This used to be on the ninja trader ecosystem but it was pulled. I treid reaching out to this Gemify but he's unreachable. My specific contribution is the normalization features. 
-## To install properly, download the current version from releases page, not the source code. It should have a sha256 hash.
+**Especially useful and convenient for prop traders migrating off of ProjectX to Tradovate, which does not have this feature natively.**
+This was on the NinjaTrader ecosystem, but it was removed long ago. Efforts to contact the original developer have been fruitless. My specific contribution is the normalization features described below. 
+## To install properly, download the current version from the releases page, not the source code. It should have a sha256 hash.
 <img width="760" height="540" alt="image" src="https://github.com/user-attachments/assets/0c4aa783-dc8d-4e86-b67e-d585c3cf3de8" />
 
 
