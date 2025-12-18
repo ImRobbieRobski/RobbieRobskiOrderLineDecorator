@@ -5,7 +5,7 @@ The **OrderLineDecorator** is a custom indicator designed for NinjaTrader 8 that
 
 **Especially useful and convenient for prop traders migrating off of ProjectX to Tradovate, which does not have this feature natively.**
 This was on the NinjaTrader ecosystem, but it was removed long ago. Efforts to contact the original developer have been fruitless. My specific contribution is the normalization features described below. 
-## To install properly, download the current version from the releases page, not the source code. It should have a sha256 hash.
+## To install properly, download the current version from the[ releases ](https://github.com/ImRobbieRobski/RobbieRobskiOrderLineDecorator/releases)page, not the source code. It should have a sha256 hash.
 <img width="760" height="540" alt="image" src="https://github.com/user-attachments/assets/0c4aa783-dc8d-4e86-b67e-d585c3cf3de8" />
 
 
